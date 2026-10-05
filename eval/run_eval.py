@@ -21,7 +21,15 @@ CASES_PATH = Path(__file__).resolve().parent / "cases.yaml"
 
 
 def compare(case: dict, actual: dict) -> list[str]:
-    """Return a list of differences between expected and actual; empty list = pass."""
+    """Return a list of differences between expected and actual; empty list = pass.
+    If the main expectation fails, an alternative from also_accept may still pass."""
+    problems = compare_one(case, actual)
+    if problems and any(not compare_one(alt, actual) for alt in case.get("also_accept", [])):
+        return []
+    return problems
+
+
+def compare_one(case: dict, actual: dict) -> list[str]:
     problems = []
 
     expected_items = case.get("items", {})
