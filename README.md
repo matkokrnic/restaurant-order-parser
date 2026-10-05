@@ -8,13 +8,12 @@ FastAPI servis koji gostovu rečenicu na hrvatskom (iz telefonskog naručivanja)
 
 Potreban je Python 3.11+ i Gemini API ključ (besplatni tier: https://aistudio.google.com/apikey).
 
-PowerShell:
+PowerShell (bez aktivacije venv-a, jer `Activate.ps1` uz zadanu execution policy ne radi):
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 $env:GEMINI_API_KEY = "<vaš ključ>"      # ili kopirajte .env.example u .env
-uvicorn app.main:app --port 8000
+.\.venv\Scripts\python.exe -m uvicorn app.main:app --port 8000
 ```
 
 bash:
@@ -36,8 +35,14 @@ curl -X POST localhost:8000/order -H "Content-Type: application/json" \
 {"items":[{"id":"margarita","quantity":1}],"unavailable":[{"text":"hamburger","quantity":2}],"needs_clarification":[],"suggestions":[]}
 ```
 
-Testovi (bez mreže, LLM je zamijenjen lažnim): `pytest`
-Eval na stvarnom modelu: `python eval/run_eval.py [--model ...] [--runs 3] [--delay 6] [--out rezultati.json]`
+Endpoint se može isprobati i interaktivno na http://localhost:8000/docs.
+
+Testovi (bez mreže, LLM je zamijenjen lažnim) i eval na stvarnom modelu:
+```powershell
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\python.exe eval/run_eval.py [--model ...] [--runs 3] [--delay 6] [--out rezultati.json]
+```
+U bashu uz aktivirani venv: `pytest` i `python eval/run_eval.py ...`.
 
 ## Format odgovora
 
