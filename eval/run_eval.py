@@ -117,6 +117,7 @@ def main():
         cases = [c for c in cases if c["category"] == args.category]
 
     results = []
+    quota_exhausted = False
     for run in range(1, args.runs + 1):
         for n, case in enumerate(cases, 1):
             try:
@@ -125,14 +126,21 @@ def main():
                 substitution = is_substitution(case, actual)
             except LLMError as e:
                 actual, latency, problems, substitution = None, 0.0, [f"error: {e.code}"], False
+                quota_exhausted = e.code == "llm_rate_limited"
             results.append({"run": run, "category": case["category"], "text": case["text"],
                             "passed": not problems, "problems": problems, "substitution": substitution,
                             "latency_s": round(latency, 3), "actual": actual})
             mark = "PASS" if not problems else "FAIL"
             print(f"[run {run} {n}/{len(cases)}] {mark} {latency:5.2f}s  {case['text']}", flush=True)
+            if quota_exhausted:
+                break  # still rate limited after retries: the quota is used up, more waiting is pointless
             time.sleep(args.delay)
+        if quota_exhausted:
+            break
 
     report(parser.model, args.runs, results)
+    if quota_exhausted:
+        print(f"\nSTOPPED EARLY: quota exhausted after {len(results)} requests. Results are partial.")
     if args.out:
         Path(args.out).write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
 
