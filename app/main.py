@@ -16,7 +16,9 @@ from app.postprocess import postprocess
 from app.schemas import MAX_TEXT_LENGTH, ErrorResponse, OrderRequest, OrderResponse
 
 load_dotenv()  # optional .env; real environment variables take precedence
+sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to cp1252, guests speak Croatian
 logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per Gemini call is noise
 log = logging.getLogger("order")
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"

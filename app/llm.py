@@ -34,6 +34,7 @@ class GeminiParser:
             temperature=0,
             response_mime_type="application/json",
             response_json_schema=build_response_schema([m["id"] for m in menu]),
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),  # no tools
         )
 
     def parse(self, text: str) -> LLMResult:
@@ -59,6 +60,7 @@ class GeminiParser:
         except httpx.HTTPError as e:
             raise LLMError("llm_error", 502, f"Could not reach the model: {type(e).__name__}")
         except errors.APIError as e:
+            log.warning("Gemini API error %s: %s", e.code, e.message)
             if e.code == 429:
                 raise LLMError("llm_rate_limited", 503, "Model rate limit reached, try again later.")
             raise LLMError("llm_error", 502, f"Model API error {e.code}.")
