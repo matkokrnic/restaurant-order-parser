@@ -72,16 +72,21 @@ def is_substitution(case: dict, actual: dict) -> bool:
     return any(i["quantity"] > expected_items.get(i["id"], 0) for i in actual["items"])
 
 
-def run_case(parser, text: str, max_rate_limit_waits: int = 3) -> dict:
-    for _ in range(max_rate_limit_waits + 1):
+# Infrastructure errors (quota, "model overloaded") say nothing about accuracy: wait and retry.
+WAIT_ON_ERROR_S = {"llm_rate_limited": 60, "llm_error": 15, "llm_timeout": 15}
+
+
+def run_case(parser, text: str, max_retries: int = 3) -> tuple[dict, float]:
+    """Returns the response and the latency of the successful attempt."""
+    for attempt in range(max_retries + 1):
+        started = time.perf_counter()
         try:
-            return process_order(text, parser)
+            return process_order(text, parser), time.perf_counter() - started
         except LLMError as e:
-            if e.code != "llm_rate_limited":
+            if e.code not in WAIT_ON_ERROR_S or attempt == max_retries:
                 raise
-            print("  rate limited, waiting 60 s...", flush=True)
-            time.sleep(60)
-    raise LLMError("llm_rate_limited", 503, "still rate limited")
+            print(f"  {e.code}, waiting {WAIT_ON_ERROR_S[e.code]} s...", flush=True)
+            time.sleep(WAIT_ON_ERROR_S[e.code])
 
 
 def percentile(values: list[float], p: float) -> float:
@@ -108,14 +113,12 @@ def main():
     results = []
     for run in range(1, args.runs + 1):
         for n, case in enumerate(cases, 1):
-            started = time.perf_counter()
             try:
-                actual = run_case(parser, case["text"])
+                actual, latency = run_case(parser, case["text"])
                 problems = compare(case, actual)
                 substitution = is_substitution(case, actual)
             except LLMError as e:
-                actual, problems, substitution = None, [f"error: {e.code}"], False
-            latency = time.perf_counter() - started
+                actual, latency, problems, substitution = None, 0.0, [f"error: {e.code}"], False
             results.append({"run": run, "category": case["category"], "text": case["text"],
                             "passed": not problems, "problems": problems, "substitution": substitution,
                             "latency_s": round(latency, 3), "actual": actual})
@@ -139,6 +142,8 @@ def report(model: str, runs: int, results: list[dict]):
         print(f"| {category} | {sum(passed)}/{len(passed)} |")
     total = sum(r["passed"] for r in results)
     print(f"| **total** | **{total}/{len(results)} ({100 * total / len(results):.0f}%)** |")
+    errors = sum(r["actual"] is None for r in results)
+    print(f"\nAPI errors after retries (counted as failures above): {errors}")
 
     substitutions = [r for r in results if r["substitution"]]
     print(f"\nSUBSTITUTIONS (off-menu/ambiguous mapped to a menu item): {len(substitutions)}")
