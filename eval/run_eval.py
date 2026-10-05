@@ -101,7 +101,13 @@ def main():
     ap.add_argument("--delay", type=float, default=6.0, help="seconds between requests (free-tier RPM)")
     ap.add_argument("--category", help="only run this category")
     ap.add_argument("--out", help="write raw results as JSON to this file")
+    ap.add_argument("--report", metavar="FILE", help="only print the report of a saved --out file")
     args = ap.parse_args()
+
+    if args.report:
+        results = json.loads(Path(args.report).read_text(encoding="utf-8"))
+        report(Path(args.report).stem, max(r["run"] for r in results), results)
+        return
 
     if args.model:
         os.environ["GEMINI_MODEL"] = args.model
