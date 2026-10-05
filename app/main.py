@@ -21,7 +21,7 @@ logging.basicConfig(stream=sys.stdout, level=logging.INFO, format="%(asctime)s %
 logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per Gemini call is noise
 log = logging.getLogger("order")
 
-DEFAULT_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_MODEL = "gemini-3.5-flash-lite"  # chosen from eval results, see README
 MENU = load_menu()
 
 
