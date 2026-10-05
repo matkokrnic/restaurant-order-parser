@@ -10,7 +10,7 @@ Potreban je Python 3.11+ i Gemini API ključ (besplatni tier: https://aistudio.g
 
 PowerShell:
 ```powershell
-py -3.12 -m venv .venv
+python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 $env:GEMINI_API_KEY = "<vaš ključ>"      # ili kopirajte .env.example u .env
@@ -25,7 +25,7 @@ export GEMINI_API_KEY="<vaš ključ>"
 uvicorn app.main:app --port 8000
 ```
 
-Bez `GEMINI_API_KEY` servis odbija start s jasnom porukom. Opcionalno: `GEMINI_MODEL` (zadano `gemini-3.5-flash-lite`), `LLM_TIMEOUT_S` (zadano 10).
+Bez `GEMINI_API_KEY` servis odbija start s jasnom porukom. Opcionalno: `GEMINI_MODEL` (zadano `gemini-3.5-flash-lite`), `LLM_TIMEOUT_S` (zadano 10; Gemini API ne prihvaća rok kraći od 10 s, pa servis manju vrijednost odbija pri startu).
 
 Primjer:
 ```bash
