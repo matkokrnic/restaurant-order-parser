@@ -10,6 +10,10 @@ from app.schemas import LLMResult
 
 log = logging.getLogger("order")
 
+# The SDK sends the timeout to Gemini as a server deadline, and Gemini rejects deadlines
+# under 10 s with 400 INVALID_ARGUMENT, so a shorter timeout would fail every request.
+MIN_TIMEOUT_S = 10
+
 
 class LLMError(Exception):
     """An LLM failure already mapped to the HTTP status and error code the API returns."""
@@ -23,6 +27,8 @@ class LLMError(Exception):
 
 class GeminiParser:
     def __init__(self, api_key: str, model: str, timeout_s: float, menu: list[dict]):
+        if timeout_s < MIN_TIMEOUT_S:
+            raise ValueError(f"LLM timeout must be at least {MIN_TIMEOUT_S} s (Gemini API minimum), got {timeout_s}.")
         self.model = model
         # timeout is in milliseconds in google-genai. No retry_options => the SDK does not retry.
         self.client = genai.Client(
@@ -63,6 +69,8 @@ class GeminiParser:
             log.warning("Gemini API error %s: %s", e.code, e.message)
             if e.code == 429:
                 raise LLMError("llm_rate_limited", 503, "Model rate limit reached, try again later.")
+            if e.code == 504:  # Gemini's own deadline expired before ours
+                raise LLMError("llm_timeout", 504, "The model did not respond in time.")
             raise LLMError("llm_error", 502, f"Model API error {e.code}.")
         # response.text is None when the model returns no text (e.g. blocked); that counts as invalid.
         return response.text or ""

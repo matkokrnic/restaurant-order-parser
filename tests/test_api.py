@@ -14,7 +14,7 @@ KEYS = {"items", "unavailable", "needs_clarification", "suggestions"}
 
 def gemini_parser_returning(*outcomes) -> GeminiParser:
     """A real GeminiParser whose SDK call returns the given texts or raises the given exceptions."""
-    parser = GeminiParser(api_key="test-key", model="test-model", timeout_s=1, menu=MENU)
+    parser = GeminiParser(api_key="test-key", model="test-model", timeout_s=10, menu=MENU)
     remaining = list(outcomes)
     parser.calls = 0
 
@@ -89,11 +89,23 @@ def test_unknown_id_from_model_lands_in_unavailable(client_with):
     assert r.json()["unavailable"] == [{"text": "hamburger", "quantity": 2}]
 
 
-def test_timeout_returns_504(client_with):
-    parser = gemini_parser_returning(httpx.ReadTimeout("timed out"))
+# What the SDK really raises (verified live): ConnectTimeout when the connection is not made in time,
+# ReadTimeout when the model is slow; a 504 APIError when Gemini's own deadline expires first.
+@pytest.mark.parametrize("exc", [
+    httpx.ConnectTimeout("timed out"),
+    httpx.ReadTimeout("timed out"),
+    errors.ServerError(504, {"error": {"message": "Deadline expired"}}),
+])
+def test_timeout_returns_504(client_with, exc):
+    parser = gemini_parser_returning(exc)
     r = client_with(parser).post("/order", json={"text": "pivo"})
     assert r.status_code == 504
     assert r.json()["error"] == "llm_timeout"
+
+
+def test_timeout_below_gemini_minimum_is_rejected():
+    with pytest.raises(ValueError, match="at least 10"):
+        GeminiParser(api_key="test-key", model="test-model", timeout_s=5, menu=MENU)
 
 
 def test_connection_error_returns_502(client_with):
