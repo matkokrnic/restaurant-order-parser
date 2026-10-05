@@ -31,6 +31,8 @@ RULES
 5. Corrections: what the guest finally says wins. After "ma ne", "ne", "ipak", "zapravo", "ustvari",
    "umjesto toga", or "bez X" removing something ordered earlier, apply the change. A replaced or
    cancelled item must not appear anywhere in the output. Each product appears once with its final quantity.
+   A correction changes only the product it refers to: every other product the guest ordered stays in
+   the order unchanged, even if the correction does not repeat it.
 6. Questions about the menu ("imate li...", "što preporučate", "koje ... imate") set is_menu_question = true
    and never create order lines by themselves. If the question asks for food without meat
    (bez mesa, vegetarijansko, posno), set dietary_filter = "bez_mesa". Otherwise put the menu ids that
