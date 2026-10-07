@@ -71,7 +71,7 @@ Greške imaju uvijek isti oblik `{"error": "<kod>", "detail": "<poruka>"}`: praz
 
 ## Što bi se dalo poboljšati
 
-Modifikatori i napomene uz stavku ("margarita bez luka", "veliko pivo") trenutno se gube; trebalo bi ih dodati kao polje `note` po stavci. Servis je bez stanja: pravi razgovor traži pamćenje narudžbe kroz više rečenica ("i još jednu takvu"), uz razrješavanje `needs_clarification` u sljedećem koraku. Ulaz dolazi iz prepoznavanja govora, pa bi pomoglo podešavanje na tipične ASR greške (fonetsko podudaranje, n-best hipoteze) i mjerenje na stvarnim snimkama umjesto na tipkanim rečenicama.
+Modifikatori i napomene uz stavku ("capricciosa bez šunke", "extra ljuta diavola") trenutno se gube; trebalo bi ih dodati kao polje `note` po stavci. Servis je bez stanja: pravi razgovor traži pamćenje narudžbe kroz više rečenica ("i još jednu takvu"), uz razrješavanje `needs_clarification` u sljedećem koraku. Ulaz dolazi iz prepoznavanja govora, pa bi pomoglo podešavanje na tipične ASR greške (fonetsko podudaranje, n-best hipoteze) i mjerenje na stvarnim snimkama umjesto na tipkanim rečenicama.
 
 ## Kako provjeriti da sustav radi dobro
 
