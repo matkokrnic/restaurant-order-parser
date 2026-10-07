@@ -37,7 +37,7 @@ class GeminiParser:
         )
         self.config = types.GenerateContentConfig(
             system_instruction=build_system_instruction(menu),
-            temperature=0,
+            # temperature not set: Gemini 3 default (1.0), measured equal to 0 on the eval, see README
             response_mime_type="application/json",
             response_json_schema=build_response_schema([m["id"] for m in menu]),
             automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),  # no tools

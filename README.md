@@ -66,7 +66,7 @@ Greške imaju uvijek isti oblik `{"error": "<kod>", "detail": "<poruka>"}`: praz
 ## Kako radi
 
 1. `app/prompt.py`: jelovnik (id, naziv, kategorija) ide u sistemsku uputu; gostov tekst ide u korisničku poruku unutar `<guest_utterance>` oznaka i tretira se isključivo kao podatak, ne kao uputa.
-2. `app/llm.py`: Gemini vraća JSON prema shemi (temperatura 0). Polje `id` je enum izgrađen iz datoteke jelovnika pri pokretanju, pa nova stavka na jelovniku ne traži promjenu koda. Uz `id` model vraća i izgovorene riječi (`text`), da bi kod mogao nevaljanu stavku premjestiti u `unavailable` bez gubitka.
+2. `app/llm.py`: Gemini vraća JSON prema shemi (zadana temperatura, vidi rezultate evaluacije). Polje `id` je enum izgrađen iz datoteke jelovnika pri pokretanju, pa nova stavka na jelovniku ne traži promjenu koda. Uz `id` model vraća i izgovorene riječi (`text`), da bi kod mogao nevaljanu stavku premjestiti u `unavailable` bez gubitka.
 3. `app/postprocess.py`: čiste funkcije, potpuno pokrivene testovima. Nepoznat `id` ide u `unavailable`, količina ≤ 0 se izbacuje (otkazano), isti `id` dvaput se zbraja, opcije pojašnjenja filtriraju se na valjane `id`-jeve, prijedlozi se provjeravaju prema jelovniku.
 
 ## Što bi se dalo poboljšati
@@ -83,26 +83,28 @@ Napomena: sadržaj poslan na besplatni Gemini tier Google koristi za poboljšanj
 
 ## Rezultati evaluacije
 
-Pokrenuto 5. 10. 2026. na besplatnom tieru, 35 rečenica, `--delay 6`. Sirovi rezultati su u `eval/results/` (`python eval/run_eval.py --report <datoteka>` ih ponovno ispisuje bez poziva API-ja).
+Pokrenuto 5. i 7. 10. 2026. na besplatnom tieru, 35 rečenica, `--delay 6`. Sirovi rezultati su u `eval/results/` (`python eval/run_eval.py --report <datoteka>` ih ponovno ispisuje bez poziva API-ja).
 
-| kategorija | flash-lite, prompt v0 (1 prolaz) | flash-lite, prompt v1 (3 prolaza) |
-|---|---|---|
-| službeni primjeri | 4/5 | 15/15 |
-| morfologija / pravopis | 4/4 | 12/12 |
-| brojevi | 3/3 | 9/9 |
-| ispravci | 4/4 | 12/12 |
-| slično, ali nije na jelovniku | 6/6 | 18/18 |
-| općeniti pojmovi | 2/2 | 6/6 |
-| pitanja | 2/2 | 6/6 |
-| narudžba + pitanje | 2/2 | 6/6 |
-| razgovor bez narudžbe | 2/2 | 6/6 |
-| prompt injection | 2/2 | 4/6 |
-| ASR šum | 3/3 | 9/9 |
-| **ukupno** | **34/35 (97 %)** | **103/105 (98 %)** |
-| **zamjene** | **0** | **0** |
-| latencija p50 / p95 | 1,22 s / 1,61 s | 1,28 s / 2,61 s |
+| kategorija | v0, temperatura 0 (1 prolaz) | v1, temperatura 0 (3 prolaza) | **v1, zadana temperatura (3 prolaza) — trenutna postavka** |
+|---|---|---|---|
+| službeni primjeri | 4/5 | 15/15 | 15/15 |
+| morfologija / pravopis | 4/4 | 12/12 | 12/12 |
+| brojevi | 3/3 | 9/9 | 9/9 |
+| ispravci | 4/4 | 12/12 | 12/12 |
+| slično, ali nije na jelovniku | 6/6 | 18/18 | 18/18 |
+| općeniti pojmovi | 2/2 | 6/6 | 6/6 |
+| pitanja | 2/2 | 6/6 | 6/6 |
+| narudžba + pitanje | 2/2 | 6/6 | 6/6 |
+| razgovor bez narudžbe | 2/2 | 6/6 | 6/6 |
+| prompt injection | 2/2 | 4/6 | 4/6 |
+| ASR šum | 3/3 | 9/9 | 9/9 |
+| **ukupno** | **34/35 (97 %)** | **103/105 (98 %)** | **103/105 (98 %)** |
+| **zamjene** | **0** | **0** | **0** |
+| latencija p50 / p95 | 1,22 s / 1,61 s | 1,28 s / 2,61 s | 1,24 s / 2,13 s |
 
 **Zadani model je `gemini-3.5-flash-lite`.** `gemini-3.8-flash` na besplatnom tieru dopušta samo 20 zahtjeva dnevno, pa nije mogao dovršiti ni jedan prolaz eval skupa (od 18 pokušanih rečenica odgovor je stigao za 2, obje točne, a ostalo su bile greške 429 i 503 "high demand"; detalji u `eval/results/v0_gemini-3.8-flash_partial.md`). Model koji ne može obraditi 35 zahtjeva bez ograničavanja nije upotrebljiv ni za ocjenjivače na istom tieru, a flash-lite je uz to točan bez ijedne zamjene i brz.
+
+**Temperatura:** Google za Gemini 3 modele preporučuje zadanu temperaturu 1,0, pa smo izmjerili obje: temperatura 0 dala je 103/105, 0 zamjena, p50 1,28 s / p95 2,61 s, a zadana 103/105, 0 zamjena, p50 1,24 s / p95 2,13 s (u oba slučaja 0 grešaka API-ja i istekâ vremena); razlika je unutar šuma, pa servis temperaturu ne šalje i koristi zadanu.
 
 Promjena prompta (jedna, opće pravilo): *ispravak mijenja samo stavku na koju se odnosi, sve ostale naručene stavke ostaju*. U v0 je model kod "tri margarite i colu, ma ne, ipak dvije margarite" uz ispravak količine margarita izbacio i colu; u v1 je taj slučaj točan u sva tri prolaza.
 
